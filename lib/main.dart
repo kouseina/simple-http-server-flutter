@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:simple_http_server/utils/connectivity_utils.dart';
 import 'dart:io';
 
 import 'package:url_launcher/url_launcher.dart';
@@ -28,7 +29,7 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   HttpServer? server;
   String statusText = "Start Server";
-  String? url;
+  List<String> urlList = [];
 
   startServer() async {
     setState(() {
@@ -40,15 +41,22 @@ class _HomeState extends State<Home> {
     print(
         "Server running on IP : ${server?.address} On Port : ${server?.port}");
 
+    String? wifiIp = await ConnectivityUtils.getIPAddress();
+
     setState(() {
-      url = "http://${server?.address.address}:${server?.port}";
+      urlList = [
+        "http://${server?.address.address}:${server?.port}",
+        "http://127.0.0.1:${server?.port}",
+      ];
+
+      if (wifiIp != null) urlList.add("http://$wifiIp:${server?.port}");
     });
 
     if (server != null) {
       await for (var request in server!) {
         request.response
           ..headers.contentType = ContentType("text", "plain", charset: "utf-8")
-          ..write('Hello, world')
+          ..write('Hello, world from http server')
           ..close();
       }
     }
@@ -64,16 +72,14 @@ class _HomeState extends State<Home> {
 
     setState(() {
       statusText = "Start Server";
-      url = null;
+      urlList = [];
     });
   }
 
-  void onLaunch() async {
-    if (url == null) return;
-
+  void onLaunch(String url) async {
     try {
-      if (await canLaunchUrl(Uri.parse(url!))) {
-        await launchUrl(Uri.parse(url!));
+      if (await canLaunchUrl(Uri.parse(url))) {
+        await launchUrl(Uri.parse(url));
       } else {
         throw 'Could not launch $url';
       }
@@ -97,11 +103,34 @@ class _HomeState extends State<Home> {
             child: Text(statusText),
           ),
           const SizedBox(height: 50),
-          if (url != null)
-            InkWell(
-              onTap: onLaunch,
-              child: Text(url!),
-            ),
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: urlList.length,
+            itemBuilder: (context, index) {
+              final url = urlList[index];
+
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: InkWell(
+                      onTap: () => onLaunch(url),
+                      child: Text(
+                        url,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
           const SizedBox(height: 50),
           ElevatedButton(
             style: ButtonStyle(
