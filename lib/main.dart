@@ -35,7 +35,7 @@ class _HomeState extends State<Home> {
       statusText = "Starting server on Port : 8080";
     });
 
-    server = await HttpServer.bind(InternetAddress.loopbackIPv4, 8080);
+    server = await HttpServer.bind(InternetAddress.anyIPv4, 8080);
 
     print(
         "Server running on IP : ${server?.address} On Port : ${server?.port}");
